@@ -1,0 +1,8 @@
+# 建議 Python 3.9 – 3.12（ddddocr 依賴的 onnxruntime 對更新版本的支援可能較慢）
+fastapi>=0.100
+uvicorn>=0.23
+python-dotenv>=1.0
+ddddocr>=1.4.11
+# 測試用
+pytest>=7
+httpx>=0.24

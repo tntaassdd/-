@@ -12,7 +12,7 @@ import pytest
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "server"))
 
 TOKEN = "test-token-1234"
-SITE_NUM = "login.school-a.edu.tw"
+SITE_NUM = "webapp.yuntech.edu.tw"
 SITE_ALNUM = "portal.company-b.com.tw"
 # 任意位元組即可，假模型不會解析
 IMG_B64 = base64.b64encode(b"\x89PNG fake image bytes").decode()

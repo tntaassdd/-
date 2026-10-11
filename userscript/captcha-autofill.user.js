@@ -1,9 +1,9 @@
 // ==UserScript==
 // @name         本機離線驗證碼自動填入
 // @namespace    local.captcha.autofill
-// @version      1.0.0
+// @version      1.0.1
 // @description  在白名單登入頁辨識簡單圖形驗證碼（本機 ddddocr），只填入、不送出
-// @match        https://login.school-a.edu.tw/login*
+// @match        https://webapp.yuntech.edu.tw/YunTechSSO/Account/Login*
 // @match        https://portal.company-b.com.tw/login*
 // @connect      127.0.0.1
 // @grant        GM_xmlhttpRequest
@@ -29,9 +29,10 @@
   //   1. 上方 @match  2. 本表  3. server/config.py 的 SITES
   // imgSelector / inputSelector 留空字串時，會改用關鍵字 + 尺寸備援偵測
   const SITES = {
-    'login.school-a.edu.tw': {
-      imgSelector: '#captchaImg',
-      inputSelector: 'input[name="captcha"]',
+    // 雲科大 SSO。選擇器尚未確認，先留空使用關鍵字備援偵測，確認後請補上
+    'webapp.yuntech.edu.tw': {
+      imgSelector: '',
+      inputSelector: '',
       charset: '0123456789',
       minLen: 4,
       maxLen: 4,

@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         本機離線驗證碼自動填入
 // @namespace    local.captcha.autofill
-// @version      1.0.1
+// @version      1.0.2
 // @description  在白名單登入頁辨識簡單圖形驗證碼（本機 ddddocr），只填入、不送出
 // @match        https://webapp.yuntech.edu.tw/YunTechSSO/Account/Login*
 // @match        https://portal.company-b.com.tw/login*
@@ -62,7 +62,9 @@
     return;
   }
 
-  const KEYWORDS = ['captcha', 'verify', 'checkcode', 'vcode', '驗證'];
+  const KEYWORDS = ['captcha', 'verify', 'checkcode', 'vcode', 'validate', 'validcode', 'authcode', 'chkcode', '驗證', '圖形'];
+  // 鄰近偵測時要排除的欄位（帳號、密碼等）
+  const NOT_CAPTCHA_RE = /user|account|acct|login|email|mail|pass|帳號|學號|密碼/i;
 
   // 行為式驗證（reCAPTCHA / hCaptcha / Turnstile）：偵測到就完全不動作
   const BEHAVIORAL_SELECTORS = [
@@ -117,20 +119,43 @@
     return null;
   }
 
-  function findInput() {
+  function isTextInput(el) {
+    const type = (el.getAttribute('type') || 'text').toLowerCase();
+    return ['text', 'tel', 'number', ''].includes(type) && !el.disabled && !el.readOnly && isVisible(el);
+  }
+
+  function findInput(img) {
     if (SITE.inputSelector) {
       const el = document.querySelector(SITE.inputSelector);
       if (el) return el;
     }
-    const candidates = [...document.querySelectorAll('input')].filter((el) => {
-      const type = (el.getAttribute('type') || 'text').toLowerCase();
-      if (!['text', 'tel', 'number', ''].includes(type)) return false;
-      return isVisible(el) &&
-        matchesKeyword(el, ['id', 'class', 'name', 'placeholder', 'aria-label', 'title']);
-    });
-    if (candidates.length) {
-      warnFallback('驗證碼輸入框', candidates[0]);
-      return candidates[0];
+    // 備援 1：關鍵字
+    const byKeyword = [...document.querySelectorAll('input')].find((el) =>
+      isTextInput(el) && matchesKeyword(el, ['id', 'class', 'name', 'placeholder', 'aria-label', 'title']));
+    if (byKeyword) {
+      warnFallback('驗證碼輸入框', byKeyword);
+      return byKeyword;
+    }
+    // 備援 2：驗證碼圖片附近、距離最近的文字輸入框（排除帳號、密碼欄位）
+    if (!img) return null;
+    const imgRect = img.getBoundingClientRect();
+    let container = img.parentElement;
+    for (let depth = 0; container && depth < 5; depth++, container = container.parentElement) {
+      const nearby = [...container.querySelectorAll('input')].filter((el) => {
+        if (!isTextInput(el)) return false;
+        const hay = ['id', 'name', 'placeholder', 'autocomplete', 'aria-label']
+          .map((a) => el.getAttribute(a) || '').join(' ');
+        return !NOT_CAPTCHA_RE.test(hay);
+      });
+      if (nearby.length) {
+        const dist = (el) => {
+          const r = el.getBoundingClientRect();
+          return Math.hypot(r.left - imgRect.left, r.top - imgRect.top);
+        };
+        nearby.sort((a, b) => dist(a) - dist(b));
+        warnFallback('驗證碼輸入框', nearby[0]);
+        return nearby[0];
+      }
     }
     return null;
   }
@@ -264,7 +289,7 @@
     }
 
     const img = state.img && state.img.isConnected ? state.img : findImage();
-    const input = state.input && state.input.isConnected ? state.input : findInput();
+    const input = state.input && state.input.isConnected ? state.input : findInput(img);
     if (!img || !input) return; // 頁面上沒有驗證碼或輸入框：不呼叫
     state.img = img;
     state.input = input;
@@ -343,7 +368,8 @@
     let tries = 0;
     const timer = setInterval(() => {
       tries += 1;
-      if (findImage() && findInput()) {
+      const img = findImage();
+      if (img && findInput(img)) {
         clearInterval(timer);
         startObserver();
         recognize('頁面載入');

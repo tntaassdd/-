@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         本機離線驗證碼自動填入
 // @namespace    local.captcha.autofill
-// @version      1.0.3
+// @version      1.0.4
 // @description  在白名單登入頁辨識簡單圖形驗證碼（本機 ddddocr），只填入、不送出
 // @match        https://webapp.yuntech.edu.tw/YunTechSSO/Account/Login*
 // @match        https://portal.company-b.com.tw/login*
@@ -28,14 +28,16 @@
   // 白名單網站（key 為 hostname）。新增網站時須同步修改：
   //   1. 上方 @match  2. 本表  3. server/config.py 的 SITES
   // imgSelector / inputSelector 留空字串時，會改用關鍵字 + 尺寸備援偵測
+  // upperCase: true 時，填入前把結果轉成大寫（選填）
   const SITES = {
     // 雲科大 SSO
     'webapp.yuntech.edu.tw': {
       imgSelector: '#NumberCaptcha',
       inputSelector: '#ValidationCode',
-      charset: '0123456789',
+      charset: '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ', // 英數（例：62I2）
       minLen: 4,
       maxLen: 4,
+      upperCase: true, // 驗證碼為大寫；ddddocr 多輸出小寫，填入前轉大寫
     },
     'portal.company-b.com.tw': {
       imgSelector: 'img.verify-code',
@@ -314,7 +316,9 @@
       log(`開始辨識（第 ${state.attempts} 次，原因：${reason}）`);
 
       const b64 = await getImageBase64(img);
-      const { text = '', raw = '' } = await callOcr(b64);
+      const result = await callOcr(b64);
+      const raw = result.raw || '';
+      const text = SITE.upperCase ? (result.text || '').toUpperCase() : (result.text || '');
 
       // 6. 檢查長度是否合理
       if (text.length < SITE.minLen || text.length > SITE.maxLen) {

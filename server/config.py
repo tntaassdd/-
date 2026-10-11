@@ -25,7 +25,7 @@ ALNUM = string.digits + string.ascii_letters
 # 後端白名單：key 為 hostname，需與油猴腳本 SITES 的 key 一致
 # charset 為該網站預設字元集（前端未帶 charset 時使用）
 SITES = {
-    "webapp.yuntech.edu.tw": {"charset": "0123456789"},
+    "webapp.yuntech.edu.tw": {"charset": ALNUM},  # 例：62I2
     "portal.company-b.com.tw": {"charset": ALNUM},
 }
 

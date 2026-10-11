@@ -12,7 +12,7 @@ import pytest
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "server"))
 
 TOKEN = "test-token-1234"
-SITE_NUM = "webapp.yuntech.edu.tw"
+SITE_YUNTECH = "webapp.yuntech.edu.tw"
 SITE_ALNUM = "portal.company-b.com.tw"
 # 任意位元組即可，假模型不會解析
 IMG_B64 = base64.b64encode(b"\x89PNG fake image bytes").decode()
@@ -91,9 +91,12 @@ def test_default_charset_alnum(client):
     assert post_ocr(client).json() == {"text": "a1B2c3", "raw": "a1-B2_c3!"}
 
 
-def test_site_charset_digits(client):
-    # 學校 A 網站設定為純數字
-    assert post_ocr(client, site=SITE_NUM).json()["text"] == "123"
+def test_site_charset_digits(client, monkeypatch):
+    # 網站設定為純數字時，只保留數字
+    import config
+
+    monkeypatch.setitem(config.SITES, "digits.example.tw", {"charset": "0123456789"})
+    assert post_ocr(client, site="digits.example.tw").json()["text"] == "123"
 
 
 def test_request_charset_overrides(client):
@@ -107,9 +110,9 @@ def test_invalid_base64_400(client):
 def test_cors_only_whitelisted(client):
     ok = client.options(
         "/ocr",
-        headers={"Origin": f"https://{SITE_NUM}", "Access-Control-Request-Method": "POST"},
+        headers={"Origin": f"https://{SITE_YUNTECH}", "Access-Control-Request-Method": "POST"},
     )
-    assert ok.headers.get("access-control-allow-origin") == f"https://{SITE_NUM}"
+    assert ok.headers.get("access-control-allow-origin") == f"https://{SITE_YUNTECH}"
     bad = client.options(
         "/ocr",
         headers={"Origin": "https://evil.example.com", "Access-Control-Request-Method": "POST"},

@@ -110,6 +110,7 @@ python -c "import secrets; print(secrets.token_hex(16))"
   charset: '0123456789',   // 英數請填 0-9a-zA-Z 全部字元
   minLen: 4,
   maxLen: 4,
+  upperCase: false,        // 選填：true 時填入前轉成大寫（驗證碼是大寫字母時使用）
 },
 ```
 

@@ -88,16 +88,16 @@ def test_base64_with_data_url_prefix(client):
 
 def test_default_charset_alnum(client):
     # 公司 B 網站設定為英數：雜訊符號被移除
-    assert post_ocr(client).json() == {"text": "a1B2c3"}
+    assert post_ocr(client).json() == {"text": "a1B2c3", "raw": "a1-B2_c3!"}
 
 
 def test_site_charset_digits(client):
     # 學校 A 網站設定為純數字
-    assert post_ocr(client, site=SITE_NUM).json() == {"text": "123"}
+    assert post_ocr(client, site=SITE_NUM).json()["text"] == "123"
 
 
 def test_request_charset_overrides(client):
-    assert post_ocr(client, charset="abc").json() == {"text": "ac"}
+    assert post_ocr(client, charset="abc").json()["text"] == "ac"
 
 
 def test_invalid_base64_400(client):

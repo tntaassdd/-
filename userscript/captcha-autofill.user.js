@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         本機離線驗證碼自動填入
 // @namespace    local.captcha.autofill
-// @version      1.0.2
+// @version      1.0.3
 // @description  在白名單登入頁辨識簡單圖形驗證碼（本機 ddddocr），只填入、不送出
 // @match        https://webapp.yuntech.edu.tw/YunTechSSO/Account/Login*
 // @match        https://portal.company-b.com.tw/login*
@@ -29,10 +29,10 @@
   //   1. 上方 @match  2. 本表  3. server/config.py 的 SITES
   // imgSelector / inputSelector 留空字串時，會改用關鍵字 + 尺寸備援偵測
   const SITES = {
-    // 雲科大 SSO。選擇器尚未確認，先留空使用關鍵字備援偵測，確認後請補上
+    // 雲科大 SSO
     'webapp.yuntech.edu.tw': {
-      imgSelector: '',
-      inputSelector: '',
+      imgSelector: '#NumberCaptcha',
+      inputSelector: '#ValidationCode',
       charset: '0123456789',
       minLen: 4,
       maxLen: 4,
@@ -231,8 +231,8 @@
   }
 
   async function getImageBase64(img) {
-    if (img.src.startsWith('data:')) return img.src; // 內嵌圖片直接使用
     try {
+      // 內嵌 data: 圖片也走 canvas（不會被汙染），統一鋪白底
       return captureFromCanvas(img);
     } catch (e) {
       if (e && e.name === 'SecurityError') {
@@ -254,7 +254,7 @@
         timeout: REQUEST_TIMEOUT,
         onload: (res) => {
           if (res.status === 200) {
-            try { resolve(JSON.parse(res.responseText).text || ''); }
+            try { resolve(JSON.parse(res.responseText)); }
             catch (e) { reject(new Error('本機服務回應格式錯誤')); }
           } else if (res.status === 403) {
             reject(new Error('本機服務拒絕（403）：請確認 API_TOKEN 與 server/.env 一致，且網站已加入後端白名單'));
@@ -314,11 +314,12 @@
       log(`開始辨識（第 ${state.attempts} 次，原因：${reason}）`);
 
       const b64 = await getImageBase64(img);
-      const text = await callOcr(b64);
+      const { text = '', raw = '' } = await callOcr(b64);
 
       // 6. 檢查長度是否合理
       if (text.length < SITE.minLen || text.length > SITE.maxLen) {
-        warn(`辨識結果長度 ${text.length} 不在 ${SITE.minLen}–${SITE.maxLen} 範圍內，不填入（可點「換一張」重試）`);
+        warn(`辨識結果長度 ${text.length} 不在 ${SITE.minLen}–${SITE.maxLen} 範圍內，不填入（可點「換一張」重試）。` +
+          `過濾後「${text}」，原始辨識「${raw}」；若原始結果常含字母，請檢查 charset 設定`);
         return;
       }
       // 送出 API 期間使用者可能已手動輸入，再檢查一次

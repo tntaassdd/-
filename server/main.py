@@ -78,7 +78,8 @@ def ocr(req: OcrRequest, request: Request):
     text = filter_charset(raw, charset)
     log.info("site=%s 耗時 %.0fms", req.site, (time.perf_counter() - started) * 1000)
     # image_bytes 僅存在於此函式的區域變數，回傳後即釋放，不落地
-    return {"text": text}
+    # raw 為過濾前的原始結果，供前端在長度不符時除錯（只回傳給本機呼叫端，不記錄）
+    return {"text": text, "raw": raw}
 
 
 if __name__ == "__main__":
